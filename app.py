@@ -8,10 +8,19 @@ import streamlit as st
 # --------------------------------
 
 st.set_page_config(
-    page_title="My Local ChatGPT Clone",
+    page_title="AI School of India - ChatGPT Clone",
     page_icon="🤖",
     layout="centered"
 )
+
+
+# --------------------------------
+# OpenRouter Settings
+# --------------------------------
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
 
 # --------------------------------
@@ -77,28 +86,24 @@ st.markdown("""
 # --------------------------------
 # Header
 # --------------------------------
+
 st.markdown("""
 <div class="hero-card">
+
 <div class="brand-title">
-My Local ChatGPT Clone <span class="green">Local AI Chatbot</span>
+AI School of India <span class="green">AI Chatbot</span>
 </div>
 
 <div class="brand-subtitle">
-My First Generative AI app using Python, Streamlit and Ollama — no OpenAI credits required.
+Build your own Generative AI chatbot using Python, Streamlit and OpenRouter.
 </div>
 
 <div class="small-note">
-Generative AI Project 1: Chat UI + Memory + Streaming + Temperature Control using local models
+Generative AI Project 1: Chat UI + Memory + Streaming + Temperature Control
 </div>
+
 </div>
 """, unsafe_allow_html=True)
-
-
-# --------------------------------
-# Ollama Settings
-# --------------------------------
-
-OLLAMA_URL = "http://localhost:11434/api/chat"
 
 
 # --------------------------------
@@ -110,15 +115,9 @@ with st.sidebar:
     st.title("⚙️ Settings")
 
     model = st.selectbox(
-        "Choose Ollama Model",
+        "Choose AI Model",
         [
-            "llama3.2",
-            "llama3.1",
-            "llama3",
-            "mistral",
-            "gemma2",
-            "qwen2.5",
-            "qwen2.5:3b"
+            "openrouter/free"
         ],
         index=0
     )
@@ -129,7 +128,7 @@ with st.sidebar:
         max_value=1.0,
         value=0.7,
         step=0.1,
-        help="0 = focused/robotic, 1 = creative"
+        help="0 = focused, 1 = more creative"
     )
 
     system_prompt = st.text_area(
@@ -137,7 +136,7 @@ with st.sidebar:
         value=(
             "You are a helpful AI assistant. "
             "Explain concepts clearly and simply. "
-            "When useful, respond with examples."
+            "When useful, provide examples."
         ),
         height=120
     )
@@ -152,35 +151,16 @@ with st.sidebar:
 
     st.markdown("### Teaching Notes")
 
-    st.markdown("- Ollama runs model locally")
-    st.markdown("- No OpenAI credits needed")
-    st.markdown("- Token = word chunk")
-    st.markdown("- Temperature = creativity dial")
-    st.markdown("- LLMs are stateless unless we send history")
+    st.markdown("- OpenRouter provides the AI model")
+    st.markdown("- Streamlit creates the chat UI")
+    st.markdown("- API key is stored securely")
+    st.markdown("- Temperature controls creativity")
+    st.markdown("- Chat history is stored in session state")
+    st.markdown("- LLMs need conversation history for memory")
 
 
 # --------------------------------
-# Helper Function
-# --------------------------------
-
-def check_ollama_running():
-
-    try:
-
-        response = requests.get(
-            "http://localhost:11434",
-            timeout=3
-        )
-
-        return response.status_code == 200
-
-    except requests.exceptions.RequestException:
-
-        return False
-
-
-# --------------------------------
-# Session State / Memory
+# Session State / Chat Memory
 # --------------------------------
 
 if "messages" not in st.session_state:
@@ -189,22 +169,7 @@ if "messages" not in st.session_state:
 
 
 # --------------------------------
-# Ollama Health Check
-# --------------------------------
-
-if not check_ollama_running():
-
-    st.error("❌ Ollama is not running.")
-
-    st.info(
-        "Open the Ollama application and try again."
-    )
-
-    st.stop()
-
-
-# --------------------------------
-# Show Chat History
+# Show Previous Chat Messages
 # --------------------------------
 
 for message in st.session_state.messages:
@@ -219,7 +184,7 @@ for message in st.session_state.messages:
 # --------------------------------
 
 user_prompt = st.chat_input(
-    "Ask anything... Try Telugu also: 'Generative AI ante enti?'"
+    "Ask anything... Try: Explain Generative AI"
 )
 
 
@@ -229,7 +194,9 @@ user_prompt = st.chat_input(
 
 if user_prompt:
 
-    # 1. Save user message
+    # --------------------------------
+    # Save User Message
+    # --------------------------------
 
     st.session_state.messages.append(
         {
@@ -239,28 +206,34 @@ if user_prompt:
     )
 
 
-    # 2. Display user message
+    # --------------------------------
+    # Display User Message
+    # --------------------------------
 
     with st.chat_message("user"):
 
         st.markdown(user_prompt)
 
 
-    # 3. Build messages for Ollama
+    # --------------------------------
+    # Build Messages for OpenRouter
+    # --------------------------------
 
-    messages_for_ollama = [
+    messages_for_openrouter = [
         {
             "role": "system",
             "content": system_prompt
         }
     ]
 
-    messages_for_ollama.extend(
+    messages_for_openrouter.extend(
         st.session_state.messages
     )
 
 
-    # 4. Generate AI response
+    # --------------------------------
+    # Generate AI Response
+    # --------------------------------
 
     with st.chat_message("assistant"):
 
@@ -271,24 +244,51 @@ if user_prompt:
 
         try:
 
+            # --------------------------------
+            # Request Payload
+            # --------------------------------
+
             payload = {
 
                 "model": model,
 
-                "messages": messages_for_ollama,
+                "messages": messages_for_openrouter,
 
-                "stream": True,
+                "temperature": temperature,
 
-                "options": {
-                    "temperature": temperature
-                }
+                "stream": True
             }
 
 
-            # Send request to Ollama
+            # --------------------------------
+            # Request Headers
+            # --------------------------------
+
+            headers = {
+
+                "Authorization": (
+                    f"Bearer {OPENROUTER_API_KEY}"
+                ),
+
+                "Content-Type": "application/json",
+
+                "HTTP-Referer": (
+                    "https://github.com/"
+                    "pranaykalyan2-bit/"
+                    "AI-based-chatgpt-clone-"
+                ),
+
+                "X-Title": "AI School of India ChatGPT Clone"
+            }
+
+
+            # --------------------------------
+            # Send Request
+            # --------------------------------
 
             with requests.post(
-                OLLAMA_URL,
+                OPENROUTER_URL,
+                headers=headers,
                 json=payload,
                 stream=True,
                 timeout=120
@@ -297,57 +297,96 @@ if user_prompt:
                 response.raise_for_status()
 
 
-                # Read streaming response
+                # --------------------------------
+                # Read Streaming Response
+                # --------------------------------
 
                 for line in response.iter_lines():
 
-                    if line:
+                    if not line:
 
-                        data = line.decode("utf-8")
-
-                        chunk = json.loads(data)
+                        continue
 
 
-                        # Get AI text
-
-                        if (
-                            "message" in chunk
-                            and "content" in chunk["message"]
-                        ):
-
-                            content = chunk["message"]["content"]
-
-                            full_response += content
+                    decoded_line = line.decode("utf-8")
 
 
-                            # Display response while generating
+                    # OpenRouter sends SSE data
+                    if decoded_line.startswith("data:"):
 
-                            response_placeholder.markdown(
-                                full_response + "▌"
-                            )
+                        data = decoded_line[5:].strip()
 
 
-                        # Stop when Ollama finishes
-
-                        if chunk.get("done", False):
+                        # Ignore stream termination message
+                        if data == "[DONE]":
 
                             break
 
 
-            # Display final response
+                        try:
 
-            response_placeholder.markdown(
-                full_response
-            )
+                            chunk = json.loads(data)
 
+
+                            # --------------------------------
+                            # Extract AI Text
+                            # --------------------------------
+
+                            choices = chunk.get(
+                                "choices",
+                                []
+                            )
+
+
+                            if choices:
+
+                                delta = choices[0].get(
+                                    "delta",
+                                    {}
+                                )
+
+
+                                content = delta.get(
+                                    "content",
+                                    ""
+                                )
+
+
+                                if content:
+
+                                    full_response += content
+
+
+                                    # Display while generating
+
+                                    response_placeholder.markdown(
+                                        full_response + "▌"
+                                    )
+
+
+                        except json.JSONDecodeError:
+
+                            continue
+
+
+                # --------------------------------
+                # Display Final Response
+                # --------------------------------
+
+                response_placeholder.markdown(
+                    full_response
+                )
+
+
+        # --------------------------------
+        # Error Handling
+        # --------------------------------
 
         except requests.exceptions.HTTPError as e:
 
             full_response = (
-                f"HTTP Error: {str(e)}\n\n"
-                f"The model '{model}' may not be downloaded.\n\n"
-                f"Run this command in Terminal:\n\n"
-                f"ollama pull {model}"
+                f"HTTP Error: {response.status_code}\n\n"
+                f"{response.text}"
             )
 
             response_placeholder.error(
@@ -358,9 +397,20 @@ if user_prompt:
         except requests.exceptions.ConnectionError:
 
             full_response = (
-                "Could not connect to Ollama.\n\n"
-                "Please make sure the Ollama application "
-                "is running on your Mac."
+                "Could not connect to OpenRouter.\n\n"
+                "Please check your internet connection."
+            )
+
+            response_placeholder.error(
+                full_response
+            )
+
+
+        except requests.exceptions.Timeout:
+
+            full_response = (
+                "The request took too long.\n\n"
+                "Please try again."
             )
 
             response_placeholder.error(
@@ -370,14 +420,18 @@ if user_prompt:
 
         except Exception as e:
 
-            full_response = f"Error: {str(e)}"
+            full_response = (
+                f"Something went wrong:\n\n{str(e)}"
+            )
 
             response_placeholder.error(
                 full_response
             )
 
 
-    # 5. Save AI response to memory
+    # --------------------------------
+    # Save AI Response to Memory
+    # --------------------------------
 
     st.session_state.messages.append(
         {
